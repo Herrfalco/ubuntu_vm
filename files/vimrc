@@ -1,0 +1,192 @@
+" Install vim-plug if not found
+if empty(glob('~/.vim/autoload/plug.vim'))
+  silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
+    \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+endif
+
+" Run PlugInstall if there are missing plugins
+autocmd VimEnter * if len(filter(values(g:plugs), '!isdirectory(v:val.dir)'))
+  \| PlugInstall --sync | source $MYVIMRC
+\| endif
+
+call plug#begin('~/.vim/plugged')
+
+Plug 'neoclide/coc.nvim', {'branche': 'release'}
+
+Plug 'kaarmu/typst.vim'
+Plug 'rodjek/vim-puppet'
+Plug 'othree/xml.vim'
+Plug 'jvirtanen/vim-hcl'
+
+call plug#end()
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" ---------- Base utile ----------
+set number
+set encoding=utf-8
+set nobackup
+set nowritebackup
+set updatetime=300
+set signcolumn=yes
+set shortmess+=c
+set completeopt=menuone,noinsert,noselect
+set clipboard=unnamedplus
+
+autocmd FileType c,c++,html,xhtml,xml,tex,css,json,yaml,sh,bash,zsh,javascript,typescript,hcl setlocal tabstop=2 shiftwidth=2 softtabstop=2 expandtab
+
+" ---------- Aide: backspace check ----------
+function! CheckBackspace() abort
+  let col = col('.') - 1
+  return !col || getline('.')[col - 1] =~# '\s'
+endfunction
+
+" ---------- Complétion ----------
+" TAB = élément suivant si menu Coc ouvert, sinon Tab / completion
+inoremap <silent><expr> <Tab>
+      \ coc#pum#visible() ? coc#pum#next(1) :
+      \ CheckBackspace()  ? "\<Tab>" :
+      \ coc#refresh()
+
+" ENTER = confirme si menu Coc ouvert ; sinon retour à la ligne normal
+inoremap <silent><expr> <CR>
+      \ coc#pum#visible() ? coc#pum#confirm() :
+      \ "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
+
+" ---------- Diagnostics ----------
+nmap <silent><nowait> [g <Plug>(coc-diagnostic-prev)
+nmap <silent><nowait> ]g <Plug>(coc-diagnostic-next)
+
+" ---------- Navigation de code ----------
+nmap <silent><nowait> gd <Plug>(coc-definition)
+nmap <silent><nowait> gy <Plug>(coc-type-definition)
+nmap <silent><nowait> gi <Plug>(coc-implementation)
+nmap <silent><nowait> gr <Plug>(coc-references)
+
+" ---------- Documentation / Hover ----------
+nnoremap <silent> K :call ShowDocumentation()<CR>
+function! ShowDocumentation() abort
+  if CocAction('hasProvider', 'hover')
+    call CocActionAsync('doHover')
+  else
+    execute 'help ' . expand('<cword>')
+  endif
+endfunction
+
+" Surligne le symbole et ses références quand le curseur s'arrête
+autocmd CursorHold * silent call CocActionAsync('highlight')
+
+" ---------- Objets de texte ----------
+xmap if <Plug>(coc-funcobj-i)
+omap if <Plug>(coc-funcobj-i)
+xmap af <Plug>(coc-funcobj-a)
+omap af <Plug>(coc-funcobj-a)
+xmap ic <Plug>(coc-classobj-i)
+omap ic <Plug>(coc-classobj-i)
+xmap ac <Plug>(coc-classobj-a)
+omap ac <Plug>(coc-classobj-a)
+
+" ---------- Fenêtres flottantes : Flèches ↑/↓ seulement ----------
+if has('nvim-0.4.0') || has('patch-8.2.0750')
+  " Normal mode
+  nnoremap <silent><nowait><expr> <Down> coc#float#has_scroll() ? coc#float#scroll(1) : "\<Ignore>"
+  nnoremap <silent><nowait><expr> <Up>   coc#float#has_scroll() ? coc#float#scroll(0) : "\<Ignore>"
+
+  " Insertion mode
+  inoremap <silent><nowait><expr> <Down> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(1)\<cr>" : "\<Ignore>"
+  inoremap <silent><nowait><expr> <Up>   coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(0)\<cr>" : "\<Ignore>"
+
+  " Visuel mode
+  vnoremap <silent><nowait><expr> <Down> coc#float#has_scroll() ? coc#float#scroll(1) : "\<Ignore>"
+  vnoremap <silent><nowait><expr> <Up>   coc#float#has_scroll() ? coc#float#scroll(0) : "\<Ignore>"
+endif
+
+" ---------- Navigation entre fenêtres (splits) ----------
+nnoremap <silent> <Left>  <C-w>h
+nnoremap <silent> <Right> <C-w>l
+if has('nvim')
+  tnoremap <silent> <Left>  <C-\><C-n><C-w>h
+  tnoremap <silent> <Right> <C-\><C-n><C-w>l
+endif
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" Typst autocompile on save
+if has('job') && executable('typst')
+  function! s:OnExitTypst(out, job, status) abort
+    if a:status != 0
+      echom 'PDF mis à jour: ' . a:out
+    endif
+  endfunction
+
+  function! s:TypstCompile() abort
+    if expand('%:e') !=# 'typ' || expand('%:t') =~? 'template'
+      return
+    endif
+
+    let l:in   = expand('%:p')              " /chemin/fichier.typ
+    let l:out  = expand('%:p:r') . '.pdf'   " /chemin/fichier.pdf
+    let l:root = expand('%:p:h')            " dossier du .typ
+    let l:cmd  = ['typst', 'compile', '--root', l:root, l:in, l:out]
+    " NB: Vim8 = exit_cb (pas on_exit)
+    call job_start(l:cmd, {'exit_cb': function('s:OnExitTypst', [l:out])})
+  endfunction
+
+  augroup TypstAutoPDF
+    autocmd!
+    autocmd BufWritePost *.typ call <SID>TypstCompile()
+  augroup END
+endif
+
+" ===== Coc.nvim Dark Hacker UI (cursorline OK, colonne gauche fixe) =====
+function! s:CocDarkHacker() abort
+  " Menus de complétion
+  highlight! Pmenu        guifg=#cfd8dc guibg=#1a1c1f ctermfg=252 ctermbg=235
+  highlight! PmenuSel     guifg=#0e0e10 guibg=#00e676 ctermfg=232 ctermbg=48
+  highlight! PmenuSbar                   guibg=#202328 ctermbg=236
+  highlight! PmenuThumb                  guibg=#3a3f46 ctermbg=240
+  highlight! CocMenuSel   guifg=#0e0e10 guibg=#00bcd4 ctermfg=232 ctermbg=45
+
+  " Fenêtres flottantes
+  highlight! NormalFloat  guifg=#cfd8dc guibg=#121216 ctermfg=252 ctermbg=233
+  highlight! FloatBorder  guifg=#3a3f46 guibg=#121216 ctermfg=240 ctermbg=233
+  highlight! FloatTitle   guifg=#00e676 guibg=#121216 ctermfg=48  ctermbg=233
+  highlight! CocFloating  guifg=#cfd8dc guibg=#121216 ctermfg=252 ctermbg=233
+
+  " Colonne des signes & numéros (fixe, plus claire)
+  highlight! SignColumn   guibg=#181a1e ctermbg=236
+  highlight! LineNr       guifg=#6c7079 guibg=#181a1e ctermfg=244 ctermbg=236
+  highlight! CursorLineNr gui=NONE cterm=NONE guifg=#00e676 guibg=NONE ctermfg=48 ctermbg=NONE
+
+  " Ligne courante (fond discret, pas d’underline)
+  highlight! CursorLine gui=NONE cterm=NONE guibg=#202328 ctermbg=237
+
+  " Diagnostics (signes + textes, sans soulignement)
+  highlight! CocErrorSign   guifg=#ff5555 guibg=#181a1e ctermfg=203 ctermbg=236
+  highlight! CocWarningSign guifg=#ffcc00 guibg=#181a1e ctermfg=220 ctermbg=236
+  highlight! CocInfoSign    guifg=#5bc0eb guibg=#181a1e ctermfg=75  ctermbg=236
+  highlight! CocHintSign    guifg=#7ee787 guibg=#181a1e ctermfg=114 ctermbg=236
+
+  highlight! CocErrorVirtualText   guifg=#ff6b6b ctermfg=203
+  highlight! CocWarningVirtualText guifg=#ffd166 ctermfg=221
+  highlight! CocInfoVirtualText    guifg=#7cc7ff ctermfg=117
+  highlight! CocHintVirtualText    guifg=#8be9a8 ctermfg=115
+
+  highlight! CocErrorHighlight   guifg=#ff5555 ctermfg=203
+  highlight! CocWarningHighlight guifg=#ffcc00 ctermfg=220
+  highlight! CocInfoHighlight    guifg=#5bc0eb ctermfg=75
+  highlight! CocHintHighlight    guifg=#7ee787 ctermfg=114
+
+  " Docs popup
+  highlight! link CocMarkdownLink Underlined
+  highlight! CocMarkdownHeader    guifg=#00bcd4 ctermfg=45
+  highlight! CocInlayHint         guifg=#6b7280 guibg=NONE ctermfg=242 ctermbg=NONE
+endfunction
+
+augroup CocDarkHackerTheme
+  autocmd!
+  autocmd VimEnter,ColorScheme * call s:CocDarkHacker()
+  " (Ré)active la surbrillance de la ligne courante dans toutes les fenêtres
+  autocmd VimEnter,WinEnter,BufEnter * setlocal cursorline
+augroup END

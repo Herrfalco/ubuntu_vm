@@ -1,0 +1,6 @@
+~/.xrandr-setup.sh
+feh --bg-fill ~/Images/wallpaper.jpg
+~/.gnome_term_gruvbox.sh --dark
+xrdb -merge ~/.Xresources
+sleep 0.5
+exec dbus-run-session i3

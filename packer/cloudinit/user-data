@@ -1,0 +1,26 @@
+#cloud-config
+autoinstall:
+  version: 1
+  identity:
+    hostname: ubuntu
+    username: vagrant
+    password: ""   # pas de mot de passe (auth par clé SSH)
+
+  user-data:
+    ssh_pwauth: false
+    disable_root: true
+    users:
+      - name: vagrant
+        groups: sudo
+        shell: /bin/bash
+        sudo: ALL=(ALL) NOPASSWD:ALL
+        lock_passwd: false
+        ssh_authorized_keys:
+          - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN1YdxBpNlzxDqfJyw/QKow1F+wvG9hXGoqiysfJOn5Y vagrant insecure public key"
+    packages:
+      - openssh-server
+      - qemu-guest-agent
+    runcmd:
+      - systemctl enable --now ssh || systemctl enable --now sshd
+      - systemctl enable --now qemu-guest-agent || true
+      - echo "Box Ubuntu Vagrant ready 🚀" > /etc/motd
