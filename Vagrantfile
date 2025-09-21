@@ -1,5 +1,5 @@
 Vagrant.configure("2") do |config|
-  config.vm.box = "generic/ubuntu2204"
+  config.vm.box = "./packer/ubuntu-24.04-libvirt.box"
   config.vm.synced_folder ".", "/vagrant"
 
   config.vm.provider "libvirt" do |libvirt|
@@ -14,11 +14,14 @@ Vagrant.configure("2") do |config|
     libvirt.graphics_autoport = true
   end
 
-  config.vm.provision "shell", inline: <<-SHELL
-    sudo apt update -y
-    sudo apt full-upgrade -y
-    sudo do-release-upgrade -y
-    sudo apt install -y puppet
+  config.vm.provision "shell",
+    env: { "DEBIAN_FRONTEND" => "noninteractive" },
+    inline: <<-SHELL
+      if ! dpkg -s puppet >/dev/null 2>&1; then
+        sudo apt update -y
+        sudo apt full-upgrade -y
+        sudo apt install -y puppet
+      fi
   SHELL
 
   config.vm.provision "puppet" do |puppet|

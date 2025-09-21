@@ -60,4 +60,3 @@ fi
 
 echo "✅ Gruvbox ($MODE) appliqué. Profil: $UUID"
 [[ -n "$FONT" ]] && echo "→ Police: $FONT ${FONTSIZE:-12}"
-

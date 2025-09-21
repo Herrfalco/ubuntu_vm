@@ -11,7 +11,7 @@ autocmd VimEnter * if len(filter(values(g:plugs), '!isdirectory(v:val.dir)'))
 
 call plug#begin('~/.vim/plugged')
 
-Plug 'neoclide/coc.nvim', {'branche': 'release'}
+Plug 'neoclide/coc.nvim', { 'branch': 'release', 'do': 'npm ci' }
 
 Plug 'kaarmu/typst.vim'
 Plug 'rodjek/vim-puppet'
@@ -19,6 +19,27 @@ Plug 'othree/xml.vim'
 Plug 'jvirtanen/vim-hcl'
 
 call plug#end()
+
+let g:coc_global_extensions = [
+      \ 'coc-json',
+      \ 'coc-yaml',
+      \ 'coc-tsserver',
+      \ 'coc-html',
+      \ 'coc-css',
+      \ 'coc-pyright',
+      \ 'coc-sh',
+      \ 'coc-clangd',
+      \ 'coc-markdownlint',
+      \ 'coc-docker',
+      \ 'coc-terraform',
+      \ 'coc-snippets',
+      \ 'coc-prettier',
+      \ 'coc-git',
+      \ 'coc-explorer',
+      \ 'coc-rust-analyzer',
+      \ 'coc-go',
+      \ 'coc-git',
+      \ ]
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
