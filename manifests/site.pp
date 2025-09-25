@@ -2,7 +2,16 @@ node default {
   include chrome
 
   $user = 'herrfalco'
+  $ids = 2000
   $home = "/home/${user}"
+  $shared = '/vagrant/files'
+  $gruv_stamp = "${home}/.config/.gnome_gruvbox_configured"
+
+  package {[
+    'vim',
+  ]:
+    ensure => absent,
+  }
 
   package {[
     'xserver-xorg',
@@ -20,18 +29,22 @@ node default {
     'nodejs',
     'npm',
     'curl',
+    'dconf-cli',
+    'libssl-dev',
+    'pkg-config',
+    'python3-autopep8',
   ]:
-    ensure => installed,
-  }
-
-  package {[
-    'vim',
-  ]:
-    ensure => absent,
+    ensure  => installed,
+    require => Package['vim'],
   }
 
   group { 'sudo':
     ensure  => present,
+  }
+
+  group { 'herrfalco':
+    ensure => present,
+    gid    => $ids,
   }
 
   user { "${user}":
@@ -40,18 +53,12 @@ node default {
     managehome => true,
     shell      => '/bin/bash',
     groups     => ['sudo'],
+    uid        => $ids,
+    gid        => 'herrfalco',
     password   => '$6$vvhbG4aduxlMg1K6$oC5OVpUuLk6ym3pcCZfOdRwr1ot83hmWeNq7RJ.exAh/73SYT44yF8Fd.ENt7Uj90VFUD5/BiAb1anfRnLyUX1',
-  }
-
-  exec { 'install_rustup':
-    command     => "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y",
-    user        => $user,
-    environment => ["HOME=${home}"],
-    creates     => "${home}/.cargo/bin/rustup",
-    path        => ['/usr/bin', '/bin'],
-    require     => [
-      User[$user],
-      Package['curl'],
+    require    => [
+      Group['sudo'],
+      Group['herrfalco'],
     ]
   }
 
@@ -63,6 +70,9 @@ node default {
     "${home}/.config/i3",
     "${home}/.local",
     "${home}/.local/bin",
+    "${home}/.local/share",
+    "${home}/.scripts",
+    "${home}/.vim",
   ]:
     ensure  => directory,
     owner   => $user,
@@ -71,78 +81,86 @@ node default {
     require => User[$user],
   }
 
-  exec { 'install_tinymist':
-    command     => "/usr/bin/curl --proto '=https' --tlsv1.2 -sSf https://github.com/Myriad-Dreamin/tinymist/releases/download/v0.13.26/tinymist-installer.sh | sh -s -- -y",
-    user        => $user,
-    environment => ["HOME=${home}"],
-    creates     => "${home}/.local/bin/tinymist",
-    path        => ['/usr/bin', '/bin'],
-    require     => [
-      File["${home}/.local/bin"],
-      Package['curl'],
-    ]
-  }
+################ Config Files #########################
 
-  file { "${home}/.gnome_term_gruvbox.sh":
-    ensure => file,
-    owner  => $user,
-    group   => $user,
-    mode    => '0700',
-    source  => '/vagrant/files/gnome_term_gruvbox.sh',
-    require => User[$user],
-  }
-
-  file { "$home/.xinitrc":
+  file { "${home}/.xinitrc":
     ensure  => file,
     owner   => $user,
     group   => $user,
     mode    => '0600',
-    source => '/vagrant/files/xinitrc',
+    source  => "${shared}/xinitrc",
     require => User[$user],
   }
 
   file { "${home}/.config/i3/config":
     ensure  => file,
     owner   => $user,
-    group  => $user,
+    group   => $user,
     mode    => '0600',
-    source  => '/vagrant/files/i3.conf',
+    source  => "${shared}/i3.conf",
     require => File["${home}/.config/i3"],
   }
 
-  file { "${home}/Images/wallpaper.jpg":
+  file { "${home}/.vimrc":
     ensure  => file,
     owner   => $user,
     group   => $user,
     mode    => '0600',
-    source  => '/vagrant/files/wallpaper.jpg',
-    require => File["${home}/Images"],
+    source  => "${shared}/vimrc",
+    require => User[$user],
   }
 
-  file { "${home}/.Xresources":
-    ensure  =>  file,
+  file { "${home}/.vim/coc-settings.json":
+    ensure  => file,
     owner   => $user,
-    group   => $user,
-    mode    => '0600',
-    source  => '/vagrant/files/Xresources.conf',
-    require => User[$user],
+    mode    => '0666',
+    source  => "${shared}/coc-settings.json",
+    require => Package['vim-gtk3'],
   }
 
-  file { "${home}/.xrandr-setup.sh":
-    ensure => file,
-    owner  => $user,
-    group   => $user,
-    mode    => '0700',
-    source  => '/vagrant/files/xrandr-setup.sh',
-    require => User[$user],
+################ Installation Scripts ####################
+
+  exec { 'install_rustup':
+    command     => "${shared}/install_rustup.sh",
+    user        => $user,
+    creates     => "${home}/.cargo/bin/rustup",
+    require     => [
+      User[$user],
+      Package['curl'],
+    ],
   }
 
-  file { "${home}/.vimrc":
-    ensure => file,
-    owner  => $user,
-    group   => $user,
-    mode    => '0600',
-    source  => '/vagrant/files/vimrc',
-    require => User[$user],
+  exec { 'install_typst':
+    command => "${shared}/install_typst.sh",
+    user    => $user,
+    path    => [
+      "${home}/.cargo/bin",
+      "/usr/bin",
+    ],
+    creates => "${home}/.cargo/bin/typst",
+    require => [
+      Package['libssl-dev'],
+      Package['pkg-config'],
+      Exec['install_rustup'],
+    ]
+  }
+
+  exec { 'install_tinymist':
+    command     => "${shared}/install_tinymist.sh",
+    user        => $user,
+    creates     => "${home}/.local/bin/tinymist",
+    require     => [
+      File["${home}/.local/bin"],
+      Package['curl'],
+    ],
+  }
+
+  exec { 'config_gnome_gruvbox':
+    command     => "${shared}/gnome_term_gruvbox.sh --dark",
+    user        => $user,
+    environment => "STAMP=${gruv_stamp}",
+    creates     => $gruv_stamp,
+    logoutput   => true,
+    require     => File["${home}/.config"],
   }
 }

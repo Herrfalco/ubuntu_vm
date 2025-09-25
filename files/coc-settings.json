@@ -1,0 +1,17 @@
+{
+  "languageserver": {
+    "typst": {
+      "command": "tinymist",
+      "filetypes": [
+        "typst"
+      ],
+      "rootPatterns": [
+        ".",
+        "typst.toml",
+        ".git/"
+      ]
+    }
+  },
+  "coc.preferences.formatOnSave": true,
+  "inlayHint.enable": false
+}

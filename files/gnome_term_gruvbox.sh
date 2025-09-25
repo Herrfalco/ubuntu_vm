@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
+
+# Si pas déjà connecté à un bus de session, en démarre un éphémère
+if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
+  exec /usr/bin/dbus-run-session "$0" "$@"
+fi
+
+# À partir d'ici tu es sûr d'avoir DBUS_SESSION_BUS_ADDRESS défini
+echo "✅ DBus actif : $DBUS_SESSION_BUS_ADDRESS"
 
 usage() {
   cat <<'EOF'
@@ -58,5 +67,9 @@ if [[ -n "$FONT" ]]; then
   gsettings set "$BASE" font "$FONT ${FONTSIZE:-12}"
 fi
 
+if ! [[ -z "$STAMP" ]]; then
+  touch $STAMP
+fi
+
 echo "✅ Gruvbox ($MODE) appliqué. Profil: $UUID"
-[[ -n "$FONT" ]] && echo "→ Police: $FONT ${FONTSIZE:-12}"
+#[[ -n "$FONT" ]] && echo "→ Police: $FONT ${FONTSIZE:-12}"
