@@ -11,7 +11,7 @@ autocmd VimEnter * if len(filter(values(g:plugs), '!isdirectory(v:val.dir)'))
 
 call plug#begin('~/.vim/plugged')
 
-Plug 'neoclide/coc.nvim', { 'branch': 'release', 'do': 'npm ci' }
+Plug 'neoclide/coc.nvim', { 'branch': 'release' }
 
 Plug 'kaarmu/typst.vim'
 Plug 'rodjek/vim-puppet'

@@ -1,5 +1,5 @@
 /vagrant/files/xrandr-setup.sh
-feh --bg-fill /vagrant/files/wallpaper.jpg
-xrdb -merge /vagrant/files/Xresources.conf
+feh --bg-fill ~/Images/wallpaper.jpg
+xrdb -merge ~/.Xresources.conf
 sleep 0.5
 exec dbus-run-session i3

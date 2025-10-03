@@ -5,7 +5,6 @@ node default {
   $ids = 2000
   $home = "/home/${user}"
   $shared = '/vagrant/files'
-  $gruv_stamp = "${home}/.config/.gnome_gruvbox_configured"
 
   package {[
     'vim',
@@ -33,6 +32,8 @@ node default {
     'libssl-dev',
     'pkg-config',
     'python3-autopep8',
+    'fonts-ibm-plex',
+    'alacritty',
   ]:
     ensure  => installed,
     require => Package['vim'],
@@ -68,6 +69,7 @@ node default {
     "${home}/Downloads",
     "${home}/.config",
     "${home}/.config/i3",
+    "${home}/.config/alacritty",
     "${home}/.local",
     "${home}/.local/bin",
     "${home}/.local/share",
@@ -83,15 +85,6 @@ node default {
 
 ################ Config Files #########################
 
-  file { "${home}/.xinitrc":
-    ensure  => file,
-    owner   => $user,
-    group   => $user,
-    mode    => '0600',
-    source  => "${shared}/xinitrc",
-    require => User[$user],
-  }
-
   file { "${home}/.config/i3/config":
     ensure  => file,
     owner   => $user,
@@ -99,6 +92,33 @@ node default {
     mode    => '0600',
     source  => "${shared}/i3.conf",
     require => File["${home}/.config/i3"],
+  }
+
+  file { "${home}/Images/wallpaper.jpg":
+    ensure  => file,
+    owner   => $user,
+    group   => $user,
+    mode    => '0600',
+    source  => "${shared}/wallpaper.jpg",
+    require => File["${home}/Images"],
+  }
+
+  file { "${home}/.Xresources.conf":
+    ensure  => file,
+    owner   => $user,
+    group   => $user,
+    mode    => '0600',
+    source  => "${shared}/Xresources.conf",
+    require => User[$user],
+  }
+
+  file { "${home}/.xinitrc":
+    ensure  => file,
+    owner   => $user,
+    group   => $user,
+    mode    => '0600',
+    source  => "${shared}/xinitrc",
+    require => User[$user],
   }
 
   file { "${home}/.vimrc":
@@ -113,9 +133,17 @@ node default {
   file { "${home}/.vim/coc-settings.json":
     ensure  => file,
     owner   => $user,
-    mode    => '0666',
+    mode    => '0600',
     source  => "${shared}/coc-settings.json",
     require => Package['vim-gtk3'],
+  }
+
+  file { "${home}/.config/alacritty/alacritty.toml":
+    ensure  => file,
+    owner   => $user,
+    mode    => '0600',
+    source  => "${shared}/alacritty.toml",
+    require => Package['alacritty'],
   }
 
 ################ Installation Scripts ####################
@@ -155,12 +183,13 @@ node default {
     ],
   }
 
-  exec { 'config_gnome_gruvbox':
-    command     => "${shared}/gnome_term_gruvbox.sh --dark",
-    user        => $user,
-    environment => "STAMP=${gruv_stamp}",
-    creates     => $gruv_stamp,
-    logoutput   => true,
-    require     => File["${home}/.config"],
+  exec { 'install_qwerty_switcher':
+    command   => "${shared}/install_qwerty_switcher.sh",
+    user      => $user,
+    creates   => "${home}/.local/bin/qwerty_switcher",
+    require   => [
+      File["${home}/.local/bin"],
+      File["${home}/.local/share"],
+    ],
   }
 }

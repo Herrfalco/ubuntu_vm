@@ -8,10 +8,14 @@ Vagrant.configure("2") do |config|
     libvirt.cpus = 8
 
     libvirt.video_type = "virtio"
-    libvirt.video_accel3d = true
     libvirt.graphics_type = "spice"
-    libvirt.graphics_gl = true
+#    libvirt.graphics_gl = true
+#    libvirt.video_accel3d = true
+    libvirt.graphics_gl = false # for nvidia compatibility
+    libvirt.video_accel3d = false # idem
     libvirt.graphics_autoport = true
+
+    libvirt.sound_type = "ich9"
   end
 
   config.vm.provision "shell",
